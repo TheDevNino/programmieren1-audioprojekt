@@ -16,7 +16,9 @@ def get_file_input(file_list, message):
             print("Keine Zahl erkennbar.")
 
 def show_statistics(file_name):
-    rate, data = wavfile.read(file_name)
+    with warnings.catch_warnings():  # ChatGP
+        warnings.simplefilter("ignore", wavfile.WavFileWarning)
+        rate, data = wavfile.read(file_name)
     N = data.shape[0]
     CHN = data.shape[1] if len(data.shape) == 2 else 1
 
