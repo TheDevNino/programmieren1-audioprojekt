@@ -3,6 +3,8 @@
 import scipy.io.wavfile as wavfile
 from scipy import signal
 import warnings
+import sounddevice as sd
+import soundfile as sf
 
 def get_file_input(file_list, message):
     while True:
@@ -30,7 +32,7 @@ def show_statistics(file_name):
     print(f"Anzahl der Audio-Kanäle (1=Mono, 2=Stereo): {CHN}")
     print(f"Dauer: {N/rate:.3f}s")
     print(f"Die ersten Abtastwerte:")
-    print(data[:50])
+    print(data[:5])
 
 xFile = ['piano.wav', 'spoken.wav']     # import signal
 hFile = ['big_hall.wav', 'classroom.wav'] # impulse signal
@@ -40,10 +42,10 @@ h_selected = get_file_input(hFile, "H FILE: 'big_hall.wav' (1), 'classroom.wav' 
 
 with warnings.catch_warnings(): # ChatGPT
     warnings.simplefilter("ignore", wavfile.WavFileWarning)
-    rate1, x = wavfile.read(x_selected)
-    rate2, h = wavfile.read(h_selected)
+    rateX, x = wavfile.read(x_selected)
+    rateH, h = wavfile.read(h_selected)
 
-assert(rate1 == rate2)
+assert(rateX == rateH)
 
 # From stereo to mono (average value of both signals)
 x = x.mean(axis=1) if len(x.shape) > 1 else x
@@ -58,11 +60,27 @@ y *= (2**15-1)
 y = y.astype('int16')
 
 # save
-wavfile.write("y.wav", rate1, y)
+yFile = "y.wav"
+wavfile.write(yFile, rateX, y)
 
 taskFinished = False
 while not taskFinished:
-    checkStatistic = input("Statistiken anzeigen (y/n)")
+    playSound = input("Sound abspielen (y/n) ")
+    if playSound.lower() == "y":
+        with warnings.catch_warnings():  # ChatGPT
+            warnings.simplefilter("ignore", wavfile.WavFileWarning)
+            rateY, fs = sf.read(yFile)
+        duration_to_play = 5  # 5 Sekunden
+        data_to_play = rateY[:int(duration_to_play * fs)]
+        sd.play(data_to_play, fs)
+        sd.wait()
+        taskFinished = True
+    elif playSound.lower() == "n":
+        taskFinished = True
+
+taskFinished = False
+while not taskFinished:
+    checkStatistic = input("Statistiken anzeigen (y/n) ")
     if  checkStatistic.lower() == "y":
         show_statistics(x_selected)
         show_statistics(h_selected)
@@ -70,5 +88,3 @@ while not taskFinished:
         taskFinished = True
     elif checkStatistic.lower() == "n":
         taskFinished = True
-
-# Abtastwerte am Anfang 0?
